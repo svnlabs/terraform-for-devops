@@ -1,3 +1,16 @@
+data "aws_ami" "os_image" {
+  owners = ["099720109477"]
+  most_recent = true
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
+  filter {
+    name = "name"
+    values = ["ubuntu/images/hvm-ssd/*amd64*"]
+  }
+}
+
 resource "aws_key_pair" "deployer" {
   key_name   = "terra-automate-key"
   public_key = file("terra-key.pub")
@@ -49,7 +62,7 @@ resource "aws_security_group" "allow_user_to_connect" {
 }
 
 resource "aws_instance" "testinstance" {
-  ami             = var.ami_id
+  ami             = data.aws_ami.os_image.id
   instance_type   = var.instance_type
   key_name        = aws_key_pair.deployer.key_name
   security_groups = [aws_security_group.allow_user_to_connect.name]
