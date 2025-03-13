@@ -63,14 +63,31 @@ resource "aws_security_group" "allow_user_to_connect" {
 
 resource "aws_instance" "testinstance" {
   ami             = data.aws_ami.os_image.id
-  instance_type   = var.instance_type
+  instance_type   = var.my_enviroment == "prd" ? "t2.medium" : "t2.micro"  
   key_name        = aws_key_pair.deployer.key_name
   security_groups = [aws_security_group.allow_user_to_connect.name]
+  user_data = file("${path.module}/script.sh")
   tags = {
     Name = "Terra-Automate"
   }
   root_block_device {
     volume_size = 10 
     volume_type = "gp3"
+  }
+  connection {
+    type        = "ssh"
+    user        = "ubuntu"
+    private_key = file("terra-key")
+    host        = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt update -y",
+      "sudo apt install -y apache2",
+      "sudo systemctl start apache2",
+      "sudo systemctl enable apache2",
+      "echo 'Hello from Terraform Provisioners!' | sudo tee /var/www/html/index.html"
+    ]
   }
 }
